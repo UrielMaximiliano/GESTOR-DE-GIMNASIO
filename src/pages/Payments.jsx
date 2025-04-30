@@ -5,45 +5,59 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ArrowTrendingUpIcon,
+  PencilIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
-
-const payments = [
-  {
-    id: 1,
-    student: 'Juan Pérez',
-    amount: 5000,
-    date: '2024-03-01',
-    type: 'Mensualidad',
-    status: 'Completado',
-    method: 'Tarjeta',
-  },
-  {
-    id: 2,
-    student: 'María García',
-    amount: 40000,
-    date: '2024-01-01',
-    type: 'Membresía Anual',
-    status: 'Completado',
-    method: 'Transferencia',
-  },
-  // Add more sample data
-];
-
-const pendingPayments = [
-  {
-    id: 1,
-    student: 'Carlos Rodríguez',
-    amount: 5000,
-    dueDate: '2024-03-15',
-    type: 'Mensualidad',
-    daysOverdue: 0,
-  },
-  // Add more sample data
-];
+import usePaymentStore from '../stores/paymentStore';
+import toast from 'react-hot-toast';
 
 export default function Payments() {
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const {
+    payments,
+    pendingPayments,
+    selectedPayment,
+    setSelectedPayment,
+    addPayment,
+    updatePayment,
+    deletePayment,
+    markPaymentAsCompleted,
+  } = usePaymentStore();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
+
+  const handleAddPayment = () => {
+    setEditingPayment(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditPayment = (payment) => {
+    setEditingPayment(payment);
+    setIsModalOpen(true);
+  };
+
+  const handleDeletePayment = (paymentId) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este pago?')) {
+      deletePayment(paymentId);
+      toast.success('Pago eliminado correctamente');
+    }
+  };
+
+  const handleMarkCompleted = (paymentId) => {
+    markPaymentAsCompleted(paymentId);
+    toast.success('Pago marcado como completado');
+  };
+
+  const handleSubmit = (data) => {
+    if (editingPayment) {
+      updatePayment({ ...data, id: editingPayment.id });
+      toast.success('Pago actualizado correctamente');
+    } else {
+      addPayment({ ...data, status: 'Completado' });
+      toast.success('Pago agregado correctamente');
+    }
+    setIsModalOpen(false);
+  };
 
   return (
     <div>
@@ -57,20 +71,21 @@ export default function Payments() {
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
           <button
             type="button"
-            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            onClick={handleAddPayment}
+            className="block px-3 py-2 text-sm font-semibold text-center text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
-            <PlusIcon className="h-5 w-5 inline-block mr-1" />
+            <PlusIcon className="inline-block w-5 h-5 mr-1" />
             Registrar Pago
           </button>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
         {/* Payment History */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="overflow-hidden bg-white rounded-lg shadow">
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900">Historial de Pagos</h2>
-            <div className="mt-6 flow-root">
+            <div className="flow-root mt-6">
               <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                   <table className="min-w-full divide-y divide-gray-300">
@@ -91,6 +106,9 @@ export default function Payments() {
                         <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                           Estado
                         </th>
+                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                          <span className="sr-only">Acciones</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -98,17 +116,16 @@ export default function Payments() {
                         <tr
                           key={payment.id}
                           className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => setSelectedPayment(payment)}
                         >
-                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
+                          <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                             {payment.student}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">
                             ${payment.amount}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{payment.date}</td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{payment.type}</td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">{payment.date}</td>
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">{payment.type}</td>
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                 payment.status === 'Completado'
@@ -117,12 +134,34 @@ export default function Payments() {
                               }`}
                             >
                               {payment.status === 'Completado' ? (
-                                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                <CheckCircleIcon className="w-4 h-4 mr-1" />
                               ) : (
-                                <XCircleIcon className="h-4 w-4 mr-1" />
+                                <XCircleIcon className="w-4 h-4 mr-1" />
                               )}
                               {payment.status}
                             </span>
+                          </td>
+                          <td className="relative py-4 pl-3 pr-4 text-sm font-medium text-right whitespace-nowrap sm:pr-6">
+                            <button
+                              onClick={() => handleEditPayment(payment)}
+                              className="mr-4 text-indigo-600 hover:text-indigo-900"
+                            >
+                              <PencilIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePayment(payment.id)}
+                              className="mr-4 text-red-600 hover:text-red-900"
+                            >
+                              <TrashIcon className="w-5 h-5" />
+                            </button>
+                            {payment.status !== 'Completado' && (
+                              <button
+                                onClick={() => handleMarkCompleted(payment.id)}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                <CheckCircleIcon className="w-5 h-5" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -135,10 +174,10 @@ export default function Payments() {
         </div>
 
         {/* Pending Payments */}
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="overflow-hidden bg-white rounded-lg shadow">
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900">Pagos Pendientes</h2>
-            <div className="mt-6 flow-root">
+            <div className="flow-root mt-6">
               <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                   <table className="min-w-full divide-y divide-gray-300">
@@ -156,19 +195,22 @@ export default function Payments() {
                         <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                           Días de Atraso
                         </th>
+                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                          <span className="sr-only">Acciones</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {pendingPayments.map((payment) => (
                         <tr key={payment.id}>
-                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
+                          <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                             {payment.student}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">
                             ${payment.amount}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{payment.dueDate}</td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">{payment.dueDate}</td>
+                          <td className="px-3 py-4 text-sm text-gray-500 whitespace-nowrap">
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                 payment.daysOverdue > 0
@@ -178,6 +220,14 @@ export default function Payments() {
                             >
                               {payment.daysOverdue} días
                             </span>
+                          </td>
+                          <td className="relative py-4 pl-3 pr-4 text-sm font-medium text-right whitespace-nowrap sm:pr-6">
+                            <button
+                              onClick={() => handleMarkCompleted(payment.id)}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              <CheckCircleIcon className="w-5 h-5" />
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -190,51 +240,120 @@ export default function Payments() {
         </div>
       </div>
 
-      {/* Payment Details Modal */}
-      {selectedPayment && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-              <div>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                  <CurrencyDollarIcon className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="mt-3 text-center sm:mt-5">
-                  <h3 className="text-base font-semibold leading-6 text-gray-900">
-                    Detalles del Pago
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      <strong>Alumno:</strong> {selectedPayment.student}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Monto:</strong> ${selectedPayment.amount}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Fecha:</strong> {selectedPayment.date}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Tipo:</strong> {selectedPayment.type}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <strong>Método:</strong> {selectedPayment.method}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 sm:mt-6">
-                <button
-                  type="button"
-                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  onClick={() => setSelectedPayment(null)}
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Payment Form Modal */}
+      {isModalOpen && (
+        <PaymentForm
+          payment={editingPayment}
+          onSubmit={handleSubmit}
+          onClose={() => setIsModalOpen(false)}
+        />
       )}
     </div>
   );
-} 
+}
+
+// PaymentForm component for adding/editing payments
+function PaymentForm({ payment, onSubmit, onClose }) {
+  const [student, setStudent] = useState(payment?.student || '');
+  const [amount, setAmount] = useState(payment?.amount || '');
+  const [date, setDate] = useState(payment?.date || '');
+  const [type, setType] = useState(payment?.type || '');
+  const [status, setStatus] = useState(payment?.status || 'Completado');
+  const [method, setMethod] = useState(payment?.method || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!student || !amount || !date || !type || !status || !method) {
+      alert('Por favor, complete todos los campos.');
+      return;
+    }
+    onSubmit({ student, amount: Number(amount), date, type, status, method });
+  };
+
+  return (
+    <div className="fixed inset-0 z-10 overflow-y-auto">
+      <div className="flex items-end justify-center min-h-full p-4 text-center sm:items-center sm:p-0">
+        <div className="relative px-4 pt-5 pb-4 overflow-hidden text-left transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+          <form onSubmit={handleSubmit}>
+            <h3 className="mb-4 text-lg font-semibold leading-6 text-gray-900">
+              {payment ? 'Editar Pago' : 'Registrar Pago'}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Alumno</label>
+                <input
+                  type="text"
+                  value={student}
+                  onChange={(e) => setStudent(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Monto</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Fecha</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                <input
+                  type="text"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Estado</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  <option value="Completado">Completado</option>
+                  <option value="Pendiente">Pendiente</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Método</label>
+                <input
+                  type="text"
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value)}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-6 space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 text-sm font-semibold text-gray-900 bg-white rounded-md shadow-sm hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-3 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500"
+              >
+                Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
